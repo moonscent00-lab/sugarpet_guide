@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/adminlogin.tsx","./src/components/processedlogo.tsx","./src/data/products.ts","./src/hooks/useimages.ts","./src/pages/homeview.tsx","./src/pages/imagemanager.tsx","./src/pages/productdetail.tsx","./src/utils/calculator.ts"],"errors":true,"version":"5.9.3"}
