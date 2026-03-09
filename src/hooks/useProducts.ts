@@ -1,57 +1,72 @@
 import { useState, useEffect } from 'react';
 import { Product, API_URL } from '../data/products';
 
+// ✅ 실제 구글 시트 헤더 기준 (한글 컬럼명)
 interface ApiRow {
-    // 한글 필드명 (구글 시트 헤더 기준)
-    id?: string;
+    // 기본 재고 시트 컬럼
+    바코드?: string | number;
+    상품명?: string;
+    상품분류?: string;
+    구매처?: string;
+    매입가?: number | string;
+    판매가?: number | string;
+    현재재고?: number | string;
+    적정재고?: number | string;
+    상태?: string;
+
+    // 급여량 계산기에 필요한 추가 컬럼 (시트에 추가 권장)
     브랜드?: string;
-    brand?: string;
-    이름?: string;
-    name?: string;
     설명?: string;
-    description?: string;
-    칼로리?: number | string;
-    kcalPerKg?: number | string;
-    종류?: string;
-    petType?: string;
-    이미지URL?: string;
-    imageUrl?: string;
+    칼로리?: number | string;   // kcalPerKg — 없으면 기본값 3500 사용
+    종류?: string;              // '강아지' 또는 '고양이' — 없으면 상품분류로 추정
+    이미지URL?: string;         // 이미지 직접 링크
     태그?: string;
-    tags?: string;
     핵심성분?: string;
-    keyIngredients?: string;
+
+    // 기타 알 수 없는 컬럼 허용
+    [key: string]: unknown;
+}
+
+function guessPetType(분류: string): 'dog' | 'cat' {
+    const v = 분류.toLowerCase();
+    if (v.includes('고양이') || v.includes('캣') || v.includes('cat') || v.includes('냥')) return 'cat';
+    if (v.includes('강아지') || v.includes('독') || v.includes('dog') || v.includes('견')) return 'dog';
+    return 'dog'; // 판단 불가 시 기본값
 }
 
 function normalizeProduct(row: ApiRow, index: number): Product {
-    const brand = row.브랜드 || row.brand || '';
-    const name = row.이름 || row.name || '';
-    const description = row.설명 || row.description || '';
-    const keyIngredients = row.핵심성분 || row.keyIngredients || '';
+    // 상품명
+    const name = String(row.상품명 || '');
 
-    // kcalPerKg: 한/영 필드 모두 시도, 숫자 변환
-    const rawKcal = row.칼로리 ?? row.kcalPerKg ?? 3500;
-    const kcalPerKg = typeof rawKcal === 'string' ? parseInt(rawKcal.replace(/[^0-9]/g, ''), 10) || 3500 : Number(rawKcal) || 3500;
+    // 브랜드 — 없으면 구매처로 대체
+    const brand = String(row.브랜드 || row.구매처 || '');
 
-    // petType: 한/영 모두 처리
-    const rawType = row.종류 || row.petType || '';
-    const petType: 'dog' | 'cat' = (
-        rawType === 'cat' ||
-        rawType === '고양이' ||
-        rawType === '猫' ||
-        rawType.toLowerCase().includes('cat')
-    ) ? 'cat' : 'dog';
+    // 설명 — 없으면 상품분류로 대체
+    const description = String(row.설명 || row.상품분류 || '');
 
-    // 이미지URL: 한글 필드명 우선 (사용자가 명시)
-    const imageUrl = row.이미지URL || row.imageUrl || '';
+    // 핵심성분
+    const keyIngredients = String(row.핵심성분 || '');
 
-    // 태그: 쉼표 구분 문자열 → 배열 변환
-    const rawTags = row.태그 || row.tags || '';
-    const tags = typeof rawTags === 'string'
-        ? rawTags.split(',').map(t => t.trim()).filter(Boolean)
-        : [];
+    // 칼로리 — 없으면 기본값 3500 (kcal/kg)
+    const rawKcal = row.칼로리 ?? 3500;
+    const kcalPerKg = typeof rawKcal === 'string'
+        ? parseInt(rawKcal.replace(/[^0-9]/g, ''), 10) || 3500
+        : Number(rawKcal) || 3500;
 
-    // id: 없으면 브랜드+이름 기반으로 생성
-    const id = row.id || `product-${brand}-${name}-${index}`.replace(/\s+/g, '-').toLowerCase();
+    // petType — 종류 컬럼 우선, 없으면 상품분류에서 추정
+    const rawType = String(row.종류 || row.상품분류 || '');
+    const petType: 'dog' | 'cat' = guessPetType(rawType);
+
+    // 이미지 URL
+    const imageUrl = String(row.이미지URL || '');
+
+    // 태그 — 상품분류를 쉼표/슬래시로 분리
+    const rawTags = String(row.태그 || row.상품분류 || '');
+    const tags = rawTags.split(/[,/]/).map(t => t.trim()).filter(Boolean);
+
+    // id — 바코드 우선, 없으면 이름 기반 생성
+    const id = String(row.바코드 || '').trim()
+        || `product-${brand}-${name}-${index}`.replace(/\s+/g, '-').toLowerCase();
 
     return {
         id,
@@ -89,9 +104,7 @@ export function useProducts(): UseProductsResult {
             try {
                 const response = await fetch(`${API_URL}?api=true&t=${Date.now()}`, {
                     method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
+                    headers: { 'Accept': 'application/json' },
                 });
 
                 if (!response.ok) {
@@ -99,10 +112,9 @@ export function useProducts(): UseProductsResult {
                 }
 
                 const data = await response.json();
-
                 if (cancelled) return;
 
-                // 응답이 배열 혹은 { data: [...] } 형태 모두 처리
+                // 배열 or { data: [...] } or { products: [...] } 모두 처리
                 const rows: ApiRow[] = Array.isArray(data)
                     ? data
                     : Array.isArray(data.data)
@@ -111,11 +123,11 @@ export function useProducts(): UseProductsResult {
                             ? data.products
                             : [];
 
-                if (rows.length === 0) {
-                    throw new Error('API에서 제품 데이터를 불러오지 못했습니다. 구글 시트를 확인해주세요.');
-                }
+                // 빈 배열이어도 에러가 아님 — 빈 목록으로 표시
+                const normalized = rows
+                    .filter(row => row.상품명)   // 상품명 없는 행은 건너뜀
+                    .map((row, idx) => normalizeProduct(row, idx));
 
-                const normalized = rows.map((row, idx) => normalizeProduct(row, idx));
                 setProducts(normalized);
             } catch (err) {
                 if (cancelled) return;
@@ -138,13 +150,9 @@ export function useProducts(): UseProductsResult {
         };
 
         fetchProducts();
-
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, [fetchTrigger]);
 
     const refetch = () => setFetchTrigger(prev => prev + 1);
-
     return { products, loading, error, refetch };
 }
