@@ -298,6 +298,11 @@ body {
   }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .result-card {
   background: linear-gradient(135deg, var(--color-primary), #D8425A);
   border-radius: var(--radius-lg);

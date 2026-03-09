@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PRODUCTS } from '../data/products';
 import { useImages } from '../hooks/useImages';
+import { useProducts } from '../hooks/useProducts';
 import { calculateFeedingAmount, calculateCups, LifeStage } from '../utils/calculator';
 import { ChevronLeft, Info, Utensils } from 'lucide-react';
 
@@ -9,8 +9,9 @@ export default function ProductDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { getImage } = useImages();
+    const { products } = useProducts();
 
-    const product = PRODUCTS.find(p => p.id === id);
+    const product = products.find(p => p.id === id);
     const [weight, setWeight] = useState<number>(5);
     const [lifeStage, setLifeStage] = useState<LifeStage>('adult_neutered');
     const [resultGrams, setResultGrams] = useState<number | null>(null);

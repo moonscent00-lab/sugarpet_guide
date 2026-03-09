@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calculator, MapPin, Search, ChevronRight, MessageCircle, Dog, Cat, X, Edit3, Save } from 'lucide-react';
-import { PRODUCTS, Product } from './data/products';
+import { Product } from './data/products';
 import { useImages } from './hooks/useImages';
+import { useProducts } from './hooks/useProducts';
 import ProcessedLogo from './components/ProcessedLogo';
 import AdminLogin from './components/AdminLogin';
 import './index.css';
@@ -86,6 +87,7 @@ const ImageWithFallback = ({ src, alt, className, style, isPlaceholder, isModal 
 };
 
 export default function App() {
+  const { products, loading: productsLoading, error: productsError, refetch } = useProducts();
   const { getImage, saveImage, getKeyIngredients, saveKeyIngredients } = useImages();
   const [petType, setPetType] = useState<'dog' | 'cat'>('dog');
   const [weight, setWeight] = useState('');
@@ -159,7 +161,7 @@ export default function App() {
 
 
 
-  const currentProducts = PRODUCTS.filter(product => {
+  const currentProducts = products.filter(product => {
     if (product.petType !== petType) return false;
 
     const brandName = `${product.brand} ${product.name}`.toLowerCase();
@@ -365,15 +367,46 @@ export default function App() {
                 </button>
               )}
             </div>
-            {searchQuery && currentProducts.length === 0 && (
+            {searchQuery && currentProducts.length === 0 && !productsLoading && !productsError && (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--color-text-light)', fontSize: '0.9rem' }}>
                 검색 결과가 없습니다. 다른 키워드로 검색해보세요.
               </div>
             )}
           </div>
 
+          {/* 로딩 상태 */}
+          {productsLoading && (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-text-light)' }}>
+              <div style={{
+                width: '40px', height: '40px', margin: '0 auto 16px',
+                border: '3px solid var(--color-primary-light)',
+                borderTopColor: 'var(--color-primary)',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite'
+              }} />
+              <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>사료 정보 불러오는 중...</p>
+            </div>
+          )}
+
+          {/* 에러 상태 */}
+          {!productsLoading && productsError && (
+            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+              <p style={{ fontSize: '0.9rem', color: '#e53e3e', marginBottom: '16px', lineHeight: 1.6 }}>
+                ⚠️ 데이터를 불러오지 못했어요.<br />
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-light)' }}>{productsError}</span>
+              </p>
+              <button
+                onClick={refetch}
+                className="calc-btn"
+                style={{ padding: '10px 24px', fontSize: '0.9rem', width: 'auto' }}
+              >
+                다시 시도하기
+              </button>
+            </div>
+          )}
+
           <div className="rec-list">
-            {currentProducts.map(product => {
+            {!productsLoading && !productsError && currentProducts.map(product => {
               const kcalPerGram = product.kcalPerKg / 1000;
               const productGrams = Math.round(result.der / kcalPerGram);
               const imgUrl = getImage(product.id, product.imageUrl);
@@ -436,6 +469,7 @@ export default function App() {
             })}
           </div>
         </section>
+
       )}
 
       {/* Footer */}
