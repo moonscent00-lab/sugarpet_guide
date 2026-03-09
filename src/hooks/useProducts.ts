@@ -123,10 +123,9 @@ export function useProducts(): UseProductsResult {
                             ? data.products
                             : [];
 
-                // ✅ 사료/간식 카테고리만 노출 (그 외 위생용품·배변용품 등 제외)
+                // ✅ 사료 카테고리만 노출 (간식·용품 등 전부 제외)
                 const ALLOWED_CATEGORIES = new Set([
                     '강아지사료', '고양이사료',
-                    '강아지간식', '고양이간식', '겸용간식',
                 ]);
 
                 // 빈 배열이어도 에러가 아님 — 빈 목록으로 표시
