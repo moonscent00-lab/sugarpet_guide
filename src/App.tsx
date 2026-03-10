@@ -7,6 +7,14 @@ import ProcessedLogo from './components/ProcessedLogo';
 import AdminLogin from './components/AdminLogin';
 import './index.css';
 
+const safeRenderString = (value: any): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(safeRenderString).join(', ');
+  if (typeof value === 'object') return ''; // 객체는 무조건 렌더링 차단 (에러 방지)
+  return String(value);
+};
+
 const MULTIPLIERS = {
   dog: {
     puppy: 3.0,
@@ -427,14 +435,14 @@ export default function App() {
                   />
 
                   <div className="product-info">
-                    <div className="product-brand">{product.brand}</div>
-                    <div className="product-name">{product.name}</div>
-                    <div className="product-feature">{product.description}</div>
-                    {product.tags && product.tags.length > 0 && (
+                    <div className="product-brand">{safeRenderString(product.brand)}</div>
+                    <div className="product-name">{safeRenderString(product.name)}</div>
+                    <div className="product-feature">{safeRenderString(product.description)}</div>
+                    {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && (
                       <div className="product-tags">
-                        {product.tags.map(tag => (
+                        {product.tags.map(tag => typeof tag === 'string' ? (
                           <span key={tag} className="tag-chip">#{tag}</span>
-                        ))}
+                        ) : null)}
                       </div>
                     )}
                   </div>
@@ -497,14 +505,14 @@ export default function App() {
             </button>
 
             <div className="modal-header">
-              <span className="modal-brand">{selectedProduct.brand}</span>
-              <h2 className="modal-product-name">{selectedProduct.name}</h2>
-              <p className="modal-product-feature">{selectedProduct.description}</p>
+              <span className="modal-brand">{safeRenderString(selectedProduct.brand)}</span>
+              <h2 className="modal-product-name">{safeRenderString(selectedProduct.name)}</h2>
+              <p className="modal-product-feature">{safeRenderString(selectedProduct.description)}</p>
 
               <div style={{ marginTop: '16px', padding: '16px', background: 'var(--color-primary-light)', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--color-primary)' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '6px' }}>[핵심 성분 요약]</div>
                 <div style={{ fontSize: '0.95rem', color: 'var(--color-text)', lineHeight: 1.5, fontWeight: 500, whiteSpace: 'pre-line' }}>
-                  {getKeyIngredients(selectedProduct.id) || selectedProduct.keyIngredients || selectedProduct.description}
+                  {safeRenderString(getKeyIngredients(selectedProduct.id) || selectedProduct.keyIngredients) || safeRenderString(selectedProduct.description)}
                 </div>
               </div>
             </div>

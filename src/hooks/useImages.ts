@@ -50,7 +50,11 @@ export function useImages() {
     };
 
     const getKeyIngredients = (productId: string) => {
-        return keyIngredients[productId];
+        const val = keyIngredients[productId];
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        // 만약 localStorage에 잘못된 객체가 들어있다면 무시
+        return '';
     };
 
     return { images, saveImage, getImage, keyIngredients, saveKeyIngredients, getKeyIngredients };
