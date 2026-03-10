@@ -6,6 +6,7 @@ interface ApiRow {
     // 기본 재고 시트 컬럼
     바코드?: string | number;
     상품명?: string;
+    이름?: string;           // 급여량 탭 컬럼명
     상품분류?: string;
     구매처?: string;
     매입가?: number | string;
@@ -18,7 +19,7 @@ interface ApiRow {
     브랜드?: string;
     설명?: string;
     칼로리?: number | string;   // kcalPerKg — 없으면 기본값 3500 사용
-    종류?: string;              // '강아지' 또는 '고양이' — 없으면 상품분류로 추정
+    종류?: string;              // '강아지사료' / '고양이사료' 또는 '강아지' / '고양이'
     이미지URL?: string;         // 이미지 직접 링크
     태그?: string;
     핵심성분?: string;
@@ -35,30 +36,30 @@ function guessPetType(분류: string): 'dog' | 'cat' {
 }
 
 function normalizeProduct(row: ApiRow, index: number): Product {
-    // 상품명
-    const name = String(row.상품명 || '');
+    // 상품명 — 재고탭은 '상품명', 급여량탭은 '이름', 또는 영문 name/Name
+    const name = String(row.상품명 || row.이름 || row.name || row.Name || '');
 
     // 브랜드 — 없으면 구매처로 대체
-    const brand = String(row.브랜드 || row.구매처 || '');
+    const brand = String(row.브랜드 || row.구매처 || row.brand || row.Brand || '');
 
     // 설명 — 없으면 상품분류로 대체
-    const description = String(row.설명 || row.상품분류 || '');
+    const description = String(row.설명 || row.상품분류 || row.description || row.Description || '');
 
     // 핵심성분
     const keyIngredients = String(row.핵심성분 || '');
 
     // 칼로리 — 없으면 기본값 3500 (kcal/kg)
-    const rawKcal = row.칼로리 ?? 3500;
+    const rawKcal = row.칼로리 ?? row.kcalPerKg ?? row.KcalPerKg ?? 3500;
     const kcalPerKg = typeof rawKcal === 'string'
         ? parseInt(rawKcal.replace(/[^0-9]/g, ''), 10) || 3500
         : Number(rawKcal) || 3500;
 
-    // petType — 종류 컬럼 우선, 없으면 상품분류에서 추정
-    const rawType = String(row.종류 || row.상품분류 || '');
+    // petType — 종류 컬럼 우선 (예: '강아지사료', '고양이사료', '강아지', '고양이')
+    const rawType = String(row.종류 || row.상품분류 || row.petType || row.PetType || '');
     const petType: 'dog' | 'cat' = guessPetType(rawType);
 
     // 이미지 URL
-    const imageUrl = String(row.이미지URL || '');
+    const imageUrl = String(row.이미지URL || row.imageUrl || row.ImageUrl || '');
 
     // 태그 — 상품분류를 쉼표/슬래시로 분리
     const rawTags = String(row.태그 || row.상품분류 || '');
@@ -123,16 +124,15 @@ export function useProducts(): UseProductsResult {
                             ? data.products
                             : [];
 
-                // ✅ 사료 카테고리만 노출 (간식·용품 등 전부 제외)
-                const ALLOWED_CATEGORIES = new Set([
-                    '강아지사료', '고양이사료',
-                ]);
-
-                // 빈 배열이어도 에러가 아님 — 빈 목록으로 표시
+                // 급여량 탭은 이미 사료만 있으므로 별도 카테고리 필터 불필요
+                // 상품명(재고탭) 또는 이름(급여량탭) 또는 영문 name 있는 행만 처리
                 const normalized = rows
-                    .filter(row => row.상품명 && ALLOWED_CATEGORIES.has(String(row.상품분류 || '').trim()))
+                    .filter(row => row.상품명 || row.이름 || row.name || row.Name)
                     .map((row, idx) => normalizeProduct(row, idx));
 
+                console.log('[useProducts] API 원본 데이터 수:', rows.length);
+                console.log('[useProducts] 필터링 후 렌더링될 데이터 수:', normalized.length);
+                
                 setProducts(normalized);
             } catch (err) {
                 if (cancelled) return;

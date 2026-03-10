@@ -46,9 +46,9 @@ export default function ProductDetail() {
                     style={{ width: '100%', height: 'auto', aspectRatio: '1', objectFit: 'contain', backgroundColor: '#FAFAFC' }}
                 />
                 <div style={{ padding: '24px' }}>
-                    <p style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '13px', marginBottom: '8px' }}>{product.brand}</p>
-                    <h2 style={{ fontSize: '22px', marginBottom: '8px', lineHeight: 1.3 }}>{product.name}</h2>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{product.description}</p>
+                    <p style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '13px', marginBottom: '8px' }}>{String(product.brand || '')}</p>
+                    <h2 style={{ fontSize: '22px', marginBottom: '8px', lineHeight: 1.3 }}>{String(product.name || '')}</h2>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{String(product.description || '')}</p>
                 </div>
             </div>
 
